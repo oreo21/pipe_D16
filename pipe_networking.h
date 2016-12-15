@@ -1,0 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#define MESSAGE_BUFFER_SIZE 256
+
+int server_handshake(int*);
+int client_handshake(int*);
