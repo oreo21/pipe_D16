@@ -25,10 +25,9 @@ int server_handshake(int* from_client){
   write(c_fifo, msg, sizeof(msg));
   
   printf("[SERVER] Waiting for [CLIENT] acknowledgment message...\n");
-  char c_msg[MESSAGE_BUFFER_SIZE + 1];
+  char c_msg[MESSAGE_BUFFER_SIZE];
   read(c_fifo, c_msg, sizeof(c_msg));
   printf("[SERVER] Received message from [CLIENT]:%s\n", c_msg);
-  c_msg[MESSAGE_BUFFER_SIZE] = 0;
   
   *from_client = c_fifo_name;  
   return c_fifo; //to_client 
@@ -36,24 +35,27 @@ int server_handshake(int* from_client){
 
 int client_handshake(int* to_server){
   
+  char c_fifo_name[MESSAGE_BUFFER_SIZE];
+  sprintf(c_fifo_name, "%d", getpid());
+  
   printf("[CLIENT] Creating private pipe...\n");
-  mkfifo("PRI", 0644); //private FIFO 
+  mkfifo(c_fifo_name, 0644); //private FIFO 
+  
   
   printf("[CLIENT] Connecting to WKP...\n");
   int wkp = open("WKP", O_WRONLY);
   
   printf("[CLIENT] Sending private FIFO name to server...\n");
-  write(wkp, "PRI", sizeof("PRI"));
+  write(wkp, c_fifo_name, sizeof(c_fifo_name));
   
   printf("[CLIENT] Connecting to private FIFO...\n");
-  int c_fifo = open("PRI", O_RDONLY);
+  int c_fifo = open(c_fifo_name, O_RDONLY);
 
-  char s_msg[MESSAGE_BUFFER_SIZE + 1];
+  char s_msg[MESSAGE_BUFFER_SIZE];
   read(c_fifo, s_msg, sizeof(s_msg));
-  s_msg[MESSAGE_BUFFER_SIZE] = '\0';
   printf("[CLIENT] Received initial message from [SERVER]: %s\n", s_msg);
   
-  int rem = remove("PRI");
+  int rem = remove(c_fifo_name);
   if (rem) {
     printf("[CLIENT] Remove error\n");
     exit(rem);
@@ -64,7 +66,7 @@ int client_handshake(int* to_server){
   char ack_message[] = "[CLIENT] >> [SERVER] this is a message of acknowledgment!\n";
   write(c_fifo, ack_message, sizeof(ack_message));
   
-  *to_server = c_fifo;
+  *to_server = c_fifo_name;
   return c_fifo;
 }
   
