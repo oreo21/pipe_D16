@@ -8,7 +8,7 @@ int server_handshake(int* from_client){
   printf("[SERVER] Connecting to WKP...\n");
   int wkp = open("WKP", O_WRONLY);
 
-  printf("[SERVER] Waiting for private fifo name...\n")
+  printf("[SERVER] Waiting for private fifo name...\n");
   char c_fifo_name[MESSAGE_BUFFER_SIZE + 1];
   read(wkp, c_fifo_name, sizeof(c_fifo_name));
   c_fifo_name[MESSAGE_BUFFER_SIZE] = 0;
@@ -62,9 +62,9 @@ int client_handshake(int* to_server){
   printf("[CLIENT] Removed private FIFO\n");
 
   char ack_message[] = "[CLIENT] >> [SERVER] this is a message of acknowledgment!\n";
-  write(fd, ack_message, sizeof(ack_message));
+  write(c_fifo, ack_message, sizeof(ack_message));
   
-  *to_server = c_fifo_name;
+  *to_server = c_fifo;
   return c_fifo;
 }
   
