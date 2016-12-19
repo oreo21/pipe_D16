@@ -2,51 +2,70 @@
 
 int server_handshake(int* from_client){
 
-  printf("[SERVER] Initiating handshake (WKP created)...\n");
+  printf("[SERVER] Initiating handshake...\n");
   mkfifo("WKP", 0644);
   
   printf("[SERVER] Connecting to WKP...\n");
   int wkp = open("WKP", O_WRONLY);
 
   printf("[SERVER] Waiting for private fifo name...\n")
-  char c_fifo_name[512];
+  char c_fifo_name[MESSAGE_BUFFER_SIZE + 1];
   read(wkp, c_fifo_name, sizeof(c_fifo_name));
+  c_fifo_name[MESSAGE_BUFFER_SIZE] = 0;
   
   int rem = remove("WKP");
-  if (rem) 
+  if (rem) {
     printf("[SERVER] Remove error\n");
+    exit(rem);
+  }
+  printf("[SERVER] Removed WKP\n");
   
   int c_fifo = open(c_fifo_name, O_WRONLY);
   char *msg = "[SERVER]>>[CLIENT] Initial message\n";
   write(c_fifo, msg, sizeof(msg));
   
-  printf("[SERVER] Waiting for [CLIENT] acknowledgment message\n");
-  char c_msg[512];
+  printf("[SERVER] Waiting for [CLIENT] acknowledgment message...\n");
+  char c_msg[MESSAGE_BUFFER_SIZE + 1];
   read(c_fifo, c_msg, sizeof(c_msg));
   printf("[SERVER] Received message from [CLIENT]:%s\n", c_msg);
- 
+  c_msg[MESSAGE_BUFFER_SIZE] = 0;
+  
   *from_client = c_fifo_name;  
   return c_fifo; //to_client 
 }
 
-int client_handshake(int* toServer){
+int client_handshake(int* to_server){
   
   printf("[CLIENT] Creating private pipe...\n");
   mkfifo("PRI", 0644); //private FIFO 
   
   printf("[CLIENT] Connecting to WKP...\n");
-  int fd = open("WKP", O_WRONLY);
+  int wkp = open("WKP", O_WRONLY);
   
-  write(fd, "PRI", sizeof("PRI") + 1);
+  printf("[CLIENT] Sending private FIFO name to server...\n");
+  write(wkp, "PRI", sizeof("PRI"));
   
-  char readin[256];
-  read("PRI", readin, sizeof(readin));
-  printf("received: %s\n", readin);
+  printf("[CLIENT] Connecting to private FIFO...\n");
+  int c_fifo = open("PRI", O_RDONLY);
+
+  char s_msg[MESSAGE_BUFFER_SIZE + 1];
+  read(c_fifo, s_msg, sizeof(s_msg));
+  s_msg[MESSAGE_BUFFER_SIZE] = '\0';
+  printf("[CLIENT] Received initial message from [SERVER]: %s\n", s_msg);
   
-  //sending message to server
+  int rem = remove("PRI");
+  if (rem) {
+    printf("[CLIENT] Remove error\n");
+    exit(rem);
+  }
   
+  printf("[CLIENT] Removed private FIFO\n");
+
+  char ack_message[] = "[CLIENT] >> [SERVER] this is a message of acknowledgment!\n";
+  write(fd, ack_message, sizeof(ack_message));
   
-  
+  *to_server = c_fifo_name;
+  return c_fifo;
 }
   
      
